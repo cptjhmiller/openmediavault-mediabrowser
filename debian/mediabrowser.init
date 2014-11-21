@@ -18,8 +18,8 @@ SERVICE="mediabrowser"
 RUN_AS="mediabrowser"
 RUN_GRP="nogroup"
 APP_PATH="/opt/${SERVICE}"
+PIDDIR="/var/run/${SERVICE}"
 PID_FILE="/var/run/${SERVICE}/${SERVICE}.pid"
-PID_PATH=$(dirname $PID_FILE)
 DAEMON="/usr/bin/mono -- MediaBrowser.Server.Mono.exe"
 
 SERVICE_XPATH="//services/${SERVICE}"
@@ -27,18 +27,6 @@ SERVICE_XPATH="//services/${SERVICE}"
 . /lib/lsb/init-functions
 . /usr/share/openmediavault/scripts/helper-functions
 
-if [ ! -d $PID_PATH ]; then
-    mkdir -p $PID_PATH
-    chown $RUN_AS $PID_PATH
-fi
-
-if [ -e $PID_FILE ]; then
-    PID=`cat $PID_FILE`
-    if ! kill -0 $PID > /dev/null 2>&1; then
-        echo "Removing stale pid file"
-        rm $PID_FILE
-    fi
-fi
 
 is_running() {
     if [ ! -e $PID_FILE ]; then
@@ -55,10 +43,17 @@ start() {
 	else
 		DBFOLDER="/var/lib/${SERVICE}"
 	fi
+
+       if [ ! -d $PIDDIR ]; then
+         mkdir -p $PIDDIR
+         chown $RUN_AS:$RUN_GRP $PIDDIR
+         chmod 2775 $PIDDIR
+       fi
+
 	DAEMON_OPTS=" -programdata ${DBFOLDER}"
 
 #	start-stop-daemon --start --user root --chuid root --background -m --oknodo --pidfile /var/run/mediabrowser/mediabrowser.pid --chdir /opt/mediabrowser --exec /opt/mono/bin/mono -- MediaBrowser.Server.Mono.exe -programdata /var/lib/mediabrowser
-	start-stop-daemon --start --user $RUN_AS --chuid $RUN_AS --group $RUN_GRP --background -m --oknodo --pidfile $PID_FILE --chdir $APP_PATH --exec $DAEMON $DAEMON_OPTS
+	start-stop-daemon -c $RUN_AS:$RUN_GRP --start --background -m --oknodo --pidfile $PID_FILE --chdir $APP_PATH --exec $DAEMON $DAEMON_OPTS
   else
     echo "$SERVICE is running"
   fi
@@ -69,6 +64,7 @@ stop() {
     echo "Stopping $SERVICE"
 #	start-stop-daemon --stop --pidfile /var/run/mediabrowser/mediabrowser.pid --retry 15
     start-stop-daemon --stop --pidfile $PID_FILE --retry 15
+    rm -rf $PIDDIR
   fi
 }
 
@@ -88,13 +84,12 @@ case "$1" in
     stop
     ;;
   restart)
-    stop
-    start
+    restart
     ;;
   status)
 #	status_of_proc -p /var/run/mediabrowser/mediabrowser.pid "/opt/mono/bin/mono -- MediaBrowser.Server.Mono.exe" "mediabrowser"
     status_of_proc -p $PID_FILE "$DAEMON" "$SERVICE"
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|uninstall}"
+    echo "Usage: $0 {start|stop|restart}"
 esac
