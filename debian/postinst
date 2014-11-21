@@ -64,10 +64,10 @@ esac
 #DEBHELPER#
 
 if [ "$(omv_config_get "${SERVICE_XPATH}/enable")" != "1" ]; then
-    while [ ! -f "/var/lib/${SERVICE_XPATH_NAME}/ffmpeg/*/ffmpeg" ]
+    while [ ! -e "/var/lib/${SERVICE_XPATH_NAME}/logs" ]
         echo "Waiting for folders to be created.";
         do
-            if [ -f "/var/lib/${SERVICE_XPATH_NAME}/ffmpeg/*/ffmpeg" ]; then
+            if [ -e "/var/lib/${SERVICE_XPATH_NAME}/logs" ]; then
                break
             fi
             echo "Still waiting for folders to be created";
