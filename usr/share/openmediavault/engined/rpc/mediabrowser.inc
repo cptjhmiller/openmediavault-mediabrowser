@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Copyright (C) 2014 OpenMediaVault Plugin Developers
  *
@@ -17,53 +16,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-require_once "openmediavault/error.inc";
-require_once "openmediavault/notify.inc";
-require_once "openmediavault/object.inc";
-require_once "openmediavault/rpc.inc";
-require_once "openmediavault/util.inc";
+require_once("openmediavault/error.inc");
+require_once("openmediavault/notify.inc");
+require_once("openmediavault/object.inc");
+require_once("openmediavault/util.inc");
+require_once("openmediavault/rpcservice.inc");
+require_once("openmediavault/initscript.inc");
 
 class OMVRpcServiceMediaBrowser extends OMVRpcServiceAbstract
 {
-    /**
-     * Get the main event message path.
-     *
-     * @return string
-     */
-    private function getEventMessagePath()
-    {
-        return "org.openmediavault.services.mediabrowser";
-    }
 
-    /**
-     * Get the service configuration XPath.
-     *
-     * @return string
-     */
-    private function getXpath()
-    {
-        return "/config/services/mediabrowser";
-    }
-
-    /**
-     * Get the name of the RPC service.
-     *
-     * @return string
-     */
     public function getName()
     {
         return "MediaBrowser";
     }
 
-    /**
-     * Initialize the RPC service.
-     *
-     * @return void
-     */
-    public function initialize()
+    private function getPluginName()
     {
+        return strtolower($this->getName());
+    }
+
+    private function getXPath()
+    {
+        return sprintf("//services/%s", $this->getPluginName());
+    }
+
+    private function getEventMessagePath()
+    {
+        return sprintf("org.openmediavault.services.%s", $this->getPluginName());
+    }
+
+    public function initialize() {
         $this->registerMethod("getSettings");
         $this->registerMethod("setSettings");
+        $this->registerMethod("doRestart");
     }
 
     /**
@@ -184,6 +170,35 @@ class OMVRpcServiceMediaBrowser extends OMVRpcServiceAbstract
         );
 
         return $object;
+    }
+
+    public function doRestart($params, $context)
+    {
+        global $xmlConfig;
+
+        // Validate the RPC caller context.
+        $this->validateMethodContext(
+            $context,
+            array( "role" => OMV_ROLE_ADMINISTRATOR )
+        );
+
+        $object = $xmlConfig->get($this->getXPath());
+
+        if (is_null($object))
+        {
+            throw new OMVException(
+                OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
+                $this->getXPath()
+            );
+        }
+
+        if (!boolval($object["enable"]))
+        {
+            return;
+        }
+
+        $initd = new OMVSysVInitScript($this->getPluginName());
+        $initd->invoke("restart");
     }
 }
 
