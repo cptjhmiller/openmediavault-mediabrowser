@@ -32,6 +32,7 @@ Ext.define("OMV.module.admin.service.mediabrowser.Settings", {
                 { name : "enable", value : true }
             ],
             properties : function(valid, field) {
+                this.setButtonDisabled("restart", !valid);
                 this.setButtonDisabled("webclient", !valid);
             }
         }]
@@ -62,6 +63,28 @@ Ext.define("OMV.module.admin.service.mediabrowser.Settings", {
         var me = this;
         var items = me.callParent(arguments);
         items.push({
+            id       : me.getId() + "-restart",
+            xtype    : "button",
+            text     : _("Restart"),
+            icon     : "images/reboot.png",
+            iconCls  : Ext.baseCSSPrefix + "btn-icon-16x16",
+            disabled : true,
+            scope    : me,
+            handler  : function() {
+                // Execute RPC.
+                OMV.Rpc.request({
+                    scope       : this,
+                    callback    : function(id, success, response) {
+                        this.doRestart();
+                    },
+                    relayErrors : false,
+                    rpcData     : {
+                        service  : "MediaBrowser",
+                        method   : "doRestart"
+                    }
+                });
+            }
+        },{
             id       : me.getId() + "-webclient",
             xtype    : "button",
 			text    : _("Media Browser Web Client"),
@@ -70,7 +93,7 @@ Ext.define("OMV.module.admin.service.mediabrowser.Settings", {
             disabled : true,
             scope    : me,
             handler  : function() {
-				var link = 'http://' + location.hostname + ':8096/mediabrowser/dashboard/dashboard.html';
+				var link = 'http://' + location.hostname + ':8096/mediabrowser';
 				window.open(link, '_blank');
             }
         });
