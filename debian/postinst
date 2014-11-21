@@ -64,10 +64,10 @@ esac
 #DEBHELPER#
 
 if [ "$(omv_config_get "${SERVICE_XPATH}/enable")" != "1" ]; then
-    while [ ! -e "/var/lib/${SERVICE_XPATH_NAME}/config/autoorganize.xml" ]
+    while [ ! -e "/var/lib/${SERVICE_XPATH_NAME}/config" ]
         echo "Waiting for folders to be created.";
         do
-            if [ -e "/var/lib/${SERVICE_XPATH_NAME}/config/autoorganize.xml" ]; then
+            if [ -e "/var/lib/${SERVICE_XPATH_NAME}/config" ]; then
                break
             fi
             echo "Still waiting for folders to be created";
